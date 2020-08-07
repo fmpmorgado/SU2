@@ -249,7 +249,6 @@ CNumerics::ResidualType<> CAvgGradCorrected_NEMO::ComputeResidual(const CConfig 
     Edge_Vector[iDim] = Coord_j[iDim]-Coord_i[iDim];
     dist_ij_2 += Edge_Vector[iDim]*Edge_Vector[iDim];
   }
-
   /*--- Make a local copy of the primitive variables ---*/
   // NOTE: We are transforming the species density terms to species mass fractions
   // Mass fraction
@@ -316,6 +315,11 @@ CNumerics::ResidualType<> CAvgGradCorrected_NEMO::ComputeResidual(const CConfig 
                      Mean_Thermal_Conductivity_ve,
                      config);
 
+  //cout<<" "<<Mean_PrimVar[0]<<" "<<Mean_GradPrimVar[0][0]<<" "<< Mean_Eve[0]<<" ";
+  //cout<<Normal[0]<<" "<<Mean_Diffusion_Coeff[0]<<" "<<Mean_Laminar_Viscosity<<" ";
+  //cout<<Mean_Thermal_Conductivity<<" "<<Mean_Thermal_Conductivity_ve<<endl;
+  //cout<<Mean_Diffusion_Coeff[0]<<endl;
+
   /*--- Update viscous residual ---*/
   for (iVar = 0; iVar < nVar; iVar++)
     Flux[iVar] = Proj_Flux_Tensor[iVar];
@@ -334,7 +338,6 @@ CNumerics::ResidualType<> CAvgGradCorrected_NEMO::ComputeResidual(const CConfig 
     //                   val_Jacobian_i, val_Jacobian_j, config);
 
   }
-
   return ResidualType<>(Flux, nullptr, nullptr);
 }
 

@@ -242,8 +242,8 @@ CNumerics::ResidualType<> CSource_NEMO::ComputeVibRelaxation(const CConfig *conf
   // Note: Park limiting cross section
   unsigned short iSpecies, iVar;
   su2double  T, Tve;
-  su2double res_min = -1E6;
-  su2double res_max = 1E6;
+  su2double res_min = -1E5;
+  su2double res_max = 1E5;
   vector<su2double> rhos;
 
   rhos.resize(nSpecies,0.0);

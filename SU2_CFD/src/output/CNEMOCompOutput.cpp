@@ -317,6 +317,10 @@ void CNEMOCompOutput::SetVolumeOutputFields(CConfig *config){
     AddVolumeOutput("COORD-Z", "z", "COORDINATES", "z-component of the coordinate vector");
 
   // Solution variables
+  if (nSpecies == 1){
+    AddVolumeOutput("DENSITY_AR",  "Density_AR",  "SOLUTION", "Density_AR");
+  }
+
   if (nSpecies == 2){
     AddVolumeOutput("DENSITY_N2",  "Density_N2",  "SOLUTION", "Density_N2");
     AddVolumeOutput("DENSITY_N",   "Density_N",   "SOLUTION", "Density_N");
@@ -483,6 +487,10 @@ void CNEMOCompOutput::LoadVolumeData(CConfig *config, CGeometry *geometry, CSolv
   SetVolumeOutputValue("COORD-Y", iPoint,  Node_Geo->GetCoord(iPoint, 1));
   if (nDim == 3)
     SetVolumeOutputValue("COORD-Z", iPoint, Node_Geo->GetCoord(iPoint, 2));
+
+  if (nSpecies == 1){
+    SetVolumeOutputValue("DENSITY_AR",   iPoint, Node_Flow->GetSolution(iPoint, 0));
+  }
 
   if (nSpecies == 2){
     SetVolumeOutputValue("DENSITY_N2",   iPoint, Node_Flow->GetSolution(iPoint, 0));

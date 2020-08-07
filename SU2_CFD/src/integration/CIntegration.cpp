@@ -30,7 +30,7 @@
 
 
 CIntegration::CIntegration() {
-  rank = SU2_MPI::GetRank();
+  rank = SU2_MPI::GetRank(); 
   size = SU2_MPI::GetSize();
   Convergence = false;
   Convergence_FSI = false;
@@ -97,7 +97,7 @@ void CIntegration::Space_Integration(CGeometry *geometry,
     KindBC = config->GetMarker_All_KindBC(iMarker);
     switch (KindBC) {
       case EULER_WALL:
-        solver_container[MainSolver]->BC_Euler_Wall(geometry, solver_container, conv_bound_numerics, visc_bound_numerics, config, iMarker);
+        solver_container[MainSolver]->BC_Euler_Wall_Dev(geometry, solver_container, conv_bound_numerics, visc_bound_numerics, config, iMarker);
         break;
       case ACTDISK_INLET:
         solver_container[MainSolver]->BC_ActDisk_Inlet(geometry, solver_container, conv_bound_numerics, visc_bound_numerics, config, iMarker);
@@ -138,7 +138,7 @@ void CIntegration::Space_Integration(CGeometry *geometry,
         solver_container[MainSolver]->BC_Far_Field(geometry, solver_container, conv_bound_numerics, visc_bound_numerics, config, iMarker);
         break;
       case SYMMETRY_PLANE:
-        solver_container[MainSolver]->BC_Sym_Plane(geometry, solver_container, conv_bound_numerics, visc_bound_numerics, config, iMarker);
+        solver_container[MainSolver]->BC_Sym_Plane_Dev(geometry, solver_container, conv_bound_numerics, visc_bound_numerics, config, iMarker);
         break;
       case ELECTRODE_BOUNDARY:
         solver_container[MainSolver]->BC_Electrode(geometry, solver_container, conv_bound_numerics, config, iMarker);

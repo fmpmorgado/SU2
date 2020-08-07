@@ -61,7 +61,63 @@ CUserDefinedTCLib::CUserDefinedTCLib(const CConfig* config, unsigned short val_n
   
   String_GasModel = config->GetGasModel();
 
-  if (String_GasModel == "N2"){
+  if (String_GasModel =="AR"){
+    if (nSpecies != 1) {
+      cout << "CONFIG ERROR: nSpecies mismatch between gas model & gas composition" << endl;
+    }
+    mf = 0.0;
+    for (iSpecies = 0; iSpecies < nSpecies; iSpecies++)
+      mf += MassFrac_Freestream[iSpecies];
+    if (mf != 1.0) {
+      cout << "CONFIG ERROR: Intial gas mass fractions do not sum to 1!" << " mf is equal to "<< mf <<endl;
+    }
+    
+    /*--- Define parameters of the gas model ---*/
+    gamma       = 1.667;
+    nReactions  = 0;
+    ionization  = false;
+
+    // Molar mass [kg/kmol]
+    MolarMass[0] = 39.948;
+    // Rotational modes of energy storage
+    RotationModes[0] = 0.0;
+    // Characteristic vibrational temperatures
+    CharVibTemp[0] = 0.0;
+    // Formation enthalpy: (JANAF values [KJ/Kmol])
+    // J/kg - from Scalabrin
+    Enthalpy_Formation[0] = 0.0;      //AR
+    // Reference temperature (JANAF values, [K])
+    Ref_Temperature[0] = 0.0;
+
+    nElStates[0] = 7;                     // AR
+
+    for (iSpecies = 0; iSpecies < nSpecies; iSpecies++)
+      maxEl = max(maxEl, nElStates[iSpecies]);
+
+    /*--- Allocate and initialize electron data arrays ---*/
+    CharElTemp.resize(nSpecies,maxEl) = su2double(0.0);
+    ElDegeneracy.resize(nSpecies,maxEl) = su2double(0.0);
+
+    Blottner(0,0) = -2.17E-2;   Blottner(0,1) = 9.9982E-1;   Blottner(0,2) = -1.335E1;  // N Change later
+
+    // AR: 7 states
+    CharElTemp(0,0) = 0.000000000000000E+00;
+    CharElTemp(0,1) = 1.611135736988230E+05;
+    CharElTemp(0,2) = 1.625833076870950E+05;
+    CharElTemp(0,3) = 1.636126382960720E+05;
+    CharElTemp(0,4) = 1.642329518358000E+05;
+    CharElTemp(0,5) = 1.649426852542080E+05;   
+    CharElTemp(0,6) = 1.653517702884570E+05; 
+    ElDegeneracy(0,0) = 1;
+    ElDegeneracy(0,1) = 9;
+    ElDegeneracy(0,2) = 21;
+    ElDegeneracy(0,3) = 7;
+    ElDegeneracy(0,4) = 3;
+    ElDegeneracy(0,5) = 5;
+    ElDegeneracy(0,6) = 15;
+  }
+
+  else if (String_GasModel == "N2"){
     /*--- Check for errors in the initialization ---*/
     if (nSpecies != 2) {
       cout << "CONFIG ERROR: nSpecies mismatch between gas model & gas composition" << endl;
@@ -657,13 +713,13 @@ vector<su2double>& CUserDefinedTCLib::GetMixtureEnergies(){
     Ef = Enthalpy_Formation[iSpecies] - Ru/MolarMass[iSpecies]*Ref_Temperature[iSpecies];
 
     // Species vibrational energy
-    if (CharVibTemp[iSpecies] != 0.0)
+    if (CharVibTemp[iSpecies] != 0.0 && nSpecies != 1)
       Ev = Ru/MolarMass[iSpecies] * CharVibTemp[iSpecies] / (exp(CharVibTemp[iSpecies]/Tve)-1.0);
     else
       Ev = 0.0;
     
     // Species electronic energy
-    num = 0.0;
+
     denom = ElDegeneracy(iSpecies,0) * exp(CharElTemp(iSpecies,0)/Tve);
     for (iEl = 1; iEl < nElStates[iSpecies]; iEl++) {
       num   += ElDegeneracy(iSpecies,iEl) * CharElTemp(iSpecies,iEl) * exp(-CharElTemp(iSpecies,iEl)/Tve);
@@ -1036,7 +1092,9 @@ void CUserDefinedTCLib::DiffusionCoeffWBE(){
         denom += MolarFracWBE[jSpecies]/Dij(iSpecies,jSpecies);
       }
     }
-    DiffusionCoeff[iSpecies] = (1-MolarFracWBE[iSpecies])/denom;  
+
+    if (nSpecies==1) DiffusionCoeff[0] = 0;
+    else DiffusionCoeff[iSpecies] = (1-MolarFracWBE[iSpecies])/denom;  
   }    
 }
 
@@ -1306,7 +1364,7 @@ void CUserDefinedTCLib::ThermalConductivitiesGY(){
 vector<su2double>& CUserDefinedTCLib::GetTemperatures(vector<su2double>& val_rhos, su2double rhoE, su2double rhoEve, su2double rhoEvel){
 
   vector<su2double> val_eves;
-  su2double rhoCvtr, rhoE_f, rhoE_ref, rhoEve_t, Tve2, Tve_o, Btol, Tmin, Tmax;
+  su2double rhoCvtr, rhoE_f, rhoE_ref, rhoEve_t, Tve2, Tve_o, Btol, Tvemin, Tvemax, Tmin, Tmax;
   bool Bconvg;
   unsigned short iIter, maxBIter;
 
@@ -1326,8 +1384,9 @@ vector<su2double>& CUserDefinedTCLib::GetTemperatures(vector<su2double>& val_rho
   T = (rhoE - rhoEve - rhoE_f + rhoE_ref - rhoEvel) / rhoCvtr;
 
   /*--- Set temperature clipping values ---*/
-  Tmin  = 50.0; Tmax = 8E4;
-  Tve_o = 50.0; Tve2 = 8E4;
+  Tmin   = 50.0; Tmax   = 8E4;
+  Tvemin = Tve_o = 50.0;
+  Tvemax = Tve2 = 8E4;
 
   /* Determine if the temperature lies within the acceptable range */
   if      (T < Tmin) T = Tmin;

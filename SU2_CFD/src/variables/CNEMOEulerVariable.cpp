@@ -185,6 +185,7 @@ bool CNEMOEulerVariable::SetPrimVar(unsigned long iPoint, CFluidModel *FluidMode
                          dPdU[iPoint], dTdU[iPoint], dTvedU[iPoint], eves[iPoint], Cvves[iPoint]);
 
   if (nonPhys) {
+    cout<<"NonPhys point"<<endl;
     for (iVar = 0; iVar < nVar; iVar++)
       Solution(iPoint,iVar) = Solution_Old(iPoint,iVar);
   }
@@ -266,24 +267,28 @@ bool CNEMOEulerVariable::Cons2PrimVar(su2double *U, su2double *V,
   vector<su2double> eves_min = fluidmodel->GetSpeciesEve(Tvemin);
   vector<su2double> eves_max = fluidmodel->GetSpeciesEve(Tvemax);
 
-  // Check for non-physical solutions
-  rhoEve_min = 0.0;
-  rhoEve_max = 0.0;
-  for (iSpecies = 0; iSpecies < nSpecies; iSpecies++) {
-    rhoEve_min += U[iSpecies] * eves_min[iSpecies];
-    rhoEve_max += U[iSpecies] * eves_max[iSpecies];
+
+  if (nSpecies!=1){
+    // Check for non-physical solutions
+    rhoEve_min = 0.0;
+    rhoEve_max = 0.0;
+    for (iSpecies = 0; iSpecies < nSpecies; iSpecies++) {
+      rhoEve_min += U[iSpecies] * eves_min[iSpecies];
+      rhoEve_max += U[iSpecies] * eves_max[iSpecies];
+    }
+    if (rhoEve < rhoEve_min) {
+      nonPhys      = true;
+      V[TVE_INDEX] = Tvemin;
+      U[nSpecies+nDim+1] = rhoEve_min;
+    } else if (rhoEve > rhoEve_max) {
+      nonPhys      = true;
+      V[TVE_INDEX] = Tvemax;
+      U[nSpecies+nDim+1] = rhoEve_max;
+    } else {
+      V[TVE_INDEX]   = T[1];
+    }
   }
-  if (rhoEve < rhoEve_min) {
-    nonPhys      = true;
-    V[TVE_INDEX] = Tvemin;
-    U[nSpecies+nDim+1] = rhoEve_min;
-  } else if (rhoEve > rhoEve_max) {
-    nonPhys      = true;
-    V[TVE_INDEX] = Tvemax;
-    U[nSpecies+nDim+1] = rhoEve_max;
-  } else {
-    V[TVE_INDEX]   = T[1];
-  }
+
 
   // Determine other properties of the mixture at the current state  
   vector<su2double> cvves = fluidmodel->GetSpeciesCvVibEle(); 
@@ -319,6 +324,13 @@ bool CNEMOEulerVariable::Cons2PrimVar(su2double *U, su2double *V,
 
   /*--- Enthalpy ---*/
   V[H_INDEX] = (U[nSpecies+nDim] + V[P_INDEX])/V[RHO_INDEX];
+
+  /*if (nonPhys){
+    for (iDim=0;iDim<nPrimVar;iDim++){
+      cout<<" "<<V[iDim];
+    }
+    cout<<endl;
+  } */
 
   return nonPhys;
 }

@@ -26,7 +26,7 @@
  * License along with SU2. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#pragma once 
 
 #include "../../../Common/include/mpi_structure.hpp"
 
@@ -869,6 +869,13 @@ public:
                                     CConfig        *config,
                                     unsigned short val_marker) { }
 
+  inline virtual void BC_Euler_Wall_Dev(CGeometry      *geometry,
+                                    CSolver        **solver_container,
+                                    CNumerics      *conv_numerics,
+                                    CNumerics      *visc_numerics,
+                                    CConfig        *config,
+                                    unsigned short val_marker) { }
+
   /*!
    * \brief A virtual member.
    * \param[in] geometry - Geometrical definition of the problem.
@@ -1152,6 +1159,13 @@ public:
    * \param[in] val_marker - Surface marker where the boundary condition is applied.
    */
   inline virtual void BC_Sym_Plane(CGeometry      *geometry,
+                                   CSolver        **solver_container,
+                                   CNumerics      *conv_numerics,
+                                   CNumerics      *visc_numerics,
+                                   CConfig        *config,
+                                   unsigned short val_marker) { }
+
+  inline virtual void BC_Sym_Plane_Dev(CGeometry      *geometry,
                                    CSolver        **solver_container,
                                    CNumerics      *conv_numerics,
                                    CNumerics      *visc_numerics,

@@ -26,7 +26,7 @@
  */
 
 #pragma once
-
+ 
 #include "../variables/CNEMOEulerVariable.hpp"
 #include "../include/fluid/CNEMOGas.hpp"
 #include "CFVMFlowSolverBase.hpp"
@@ -213,6 +213,21 @@ public:
      * \param[in] config - Definition of the particular problem.
      * \param[in] val_marker - Surface marker where the boundary condition is applied.
      */
+  
+  void BC_Euler_Wall_Dev(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
+                     CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) final;
+
+  /*!
+     * \brief Impose the far-field boundary condition using characteristics.
+     * \param[in] geometry - Geometrical definition of the problem.
+     * \param[in] solver_container - Container vector with all the solutions.
+     * \param[in] conv_numerics - Description of the numerical method for convective terms.
+   * \param[in] visc_numerics - Description of the numerical method for viscous terms.
+     * \param[in] config - Definition of the particular problem.
+     * \param[in] val_marker - Surface marker where the boundary condition is applied.
+     */
+
+
   void BC_Far_Field(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
                     CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) override;
 
@@ -226,6 +241,9 @@ public:
      * \param[in] val_marker - Surface marker where the boundary condition is applied.
      */
   void BC_Sym_Plane(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
+                    CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) final;
+
+  void BC_Sym_Plane_Dev(CGeometry *geometry, CSolver **solver_container, CNumerics *conv_numerics,
                     CNumerics *visc_numerics, CConfig *config, unsigned short val_marker) final;
 
   /*!
