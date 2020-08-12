@@ -2073,8 +2073,10 @@ void CFVMFlowSolverBase<V, FlowRegime>::Friction_Forces(const CGeometry* geometr
       }
     }
 
-    if ((Boundary == HEAT_FLUX) || (Boundary == ISOTHERMAL) || (Boundary == CHT_WALL_INTERFACE)) {
-      /*--- Forces initialization at each Marker ---*/
+    if ((Boundary == HEAT_FLUX) ||
+       (Boundary == ISOTHERMAL) ||
+       (Boundary == CHT_WALL_INTERFACE) || 
+       (Boundary == SMOLUCHOWSKI_MAXWELL)) {       /*--- Forces initialization at each Marker ---*/
 
       ViscCoeff.setZero(iMarker);
 
