@@ -865,15 +865,15 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
 
   vector<su2double> Ms;
   
-  bool ionization = config->GetIonization();
+//  bool ionization = config->GetIonization();
 
-  if (ionization) {
-    cout << "BC_SMOLUCHOWSKI_MAXWELL: NEED TO TAKE A CLOSER LOOK AT THE JACOBIAN W/ IONIZATION" << endl;
-    exit(1);
-  }
+//  if (ionization) {
+//    cout << "BC_SMOLUCHOWSKI_MAXWELL: NEED TO TAKE A CLOSER LOOK AT THE JACOBIAN W/ IONIZATION" << endl;
+//    exit(1);
+//  }
 
   /*--- Define 'proportional control' constant ---*/
-  C = 5;
+  C = 5.0;
 
   /*--- Identify the boundary ---*/
   string Marker_Tag = config->GetMarker_All_TagBound(val_marker);
@@ -901,7 +901,7 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
         Area += Normal[iDim]*Normal[iDim];
       Area = sqrt (Area);
       for (iDim = 0; iDim < nDim; iDim++)
-        UnitNormal[iDim] = -Normal[iDim]/Area;
+        UnitNormal[iDim] = Normal[iDim]/Area;
 
       /*--- Compute closest normal neighbor ---*/
       jPoint = geometry->vertex[val_marker][iVertex]->GetNormal_Neighbor();
@@ -939,6 +939,9 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
       Density = nodes->GetDensity(iPoint);
 
       Ms = FluidModel->GetMolarMass();
+      
+      /*--- Retrieve Primitive Gradients ---*/
+      Grad_PrimVar = nodes->GetGradient_Primitive(iPoint);
 
       /*--- Calculate specific gas constant --- */
       GasConstant=0;
@@ -946,23 +949,36 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
         GasConstant+=UNIVERSAL_GAS_CONSTANT*1000.0/Ms[iSpecies]*nodes->GetMassFraction(iPoint,iSpecies);
       
       /*--- Calculate temperature gradients normal to surface---*/ //Doubt about minus sign
-      dTn   = - (Ti-Tj)/dij;
-      dTven = - (Tvei-Tvej)/dij;
+      dTn = 0.0; dTven = 0.0;
+      for (iDim = 0; iDim < nDim; iDim++) {
+        dTn   += Grad_PrimVar[T_INDEX][iDim]*UnitNormal[iDim];
+        dTven += Grad_PrimVar[TVE_INDEX][iDim]*UnitNormal[iDim];
+      }
+
+      su2double rhoCv,rhoCvve;
+      su2double Lambda_ve, Tslip_ve;
+
+      rhoCv=nodes->GetRhoCv_tr(iPoint);
+      rhoCvve=nodes->GetRhoCv_ve(iPoint);
 
       /*--- Calculate molecular mean free path ---*/
-      Lambda = Viscosity/Density*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      //Lambda = Viscosity/Density*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda    = 2/(Gamma+1)*ktr/rhoCv*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda_ve = 2/(Gamma+1)*kve/rhoCvve*sqrt(PI_NUMBER/(2*GasConstant*Ti));
 
       /*--- Calculate Temperature Slip ---*/
-      Tslip = ((2-TAC)/TAC)*2*Gamma/(Gamma+1)/Prandtl_Lam*Lambda*dTn+Twall;
+      //Tslip = ((2-TAC)/TAC)*2*Gamma/(Gamma+1)/Prandtl_Lam*Lambda*dTn+Twall;
+      Tslip = ((2-TAC)/TAC)*Lambda*dTn+Twall;
+      Tslip_ve = ((2-TAC)/TAC)*Lambda_ve*dTn+Twall;
 
-      /*--- Retrieve Primitive Gradients ---*/
-      Grad_PrimVar = nodes->GetGradient_Primitive(iPoint);
 
       /*--- Calculate temperature gradients tangent to surface ---*/
       for (iDim = 0; iDim < nDim; iDim++) {
         Vector_Tangent_dT[iDim]   = Grad_PrimVar[T_INDEX][iDim] - dTn * UnitNormal[iDim];
         Vector_Tangent_dTve[iDim] = Grad_PrimVar[TVE_INDEX][iDim] - dTven * UnitNormal[iDim];
       }
+  //    if(Coord_i[0]==0.0) cout<<"x=0"<<" Viscosity:"<<Viscosity<<" Density:"<<Density<<endl;
+  //    if(Coord_i[0]==0.3048) cout<<"x=0.3048"<<" Viscosity:"<<Viscosity<<" Density:"<<Density<<endl;
 
       /*--- Calculate Heatflux tangent to surface ---*/
       for (iDim = 0; iDim < nDim; iDim++) 
@@ -988,17 +1004,62 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
           TauElem[iDim] += Tau[iDim][jDim]*UnitNormal[jDim];
       }
 
+  //   if(Coord_i[1]==0.1524)  cout<<"Tau Elem: "<<TauElem[0]<<" "<<TauElem[1]<<endl;
+
       /*--- Compute wall shear stress (using the stress tensor) ---*/
       TauNormal = 0.0;
       for (iDim = 0; iDim < nDim; iDim++)
         TauNormal += TauElem[iDim] * UnitNormal[iDim];
       for (iDim = 0; iDim < nDim; iDim++) {
-        TauTangent[iDim] = TauElem[iDim] - TauNormal * UnitNormal[iDim];
+        TauTangent[iDim] = TauElem[iDim] - TauNormal*UnitNormal[iDim];
       }
+  //     if(Coord_i[1]==0.1524)  cout<<"Tau: "<<TauTangent[0]<<" "<<TauTangent[1]<<endl;
+
 
       /*--- Store the Slip Velocity at the wall */
       for (iDim = 0; iDim < nDim; iDim++)
-        Vector[iDim] = - Lambda/Viscosity*(2-TMAC)/TMAC*(TauTangent[iDim])-3/4*(Gamma-1)/Gamma*Prandtl_Lam/Pi*Vector_Tangent_HF[iDim];
+        Vector[iDim] = Lambda/Viscosity*(2-TMAC)/TMAC*(TauTangent[iDim])-3/4*(Gamma-1)/Gamma*Prandtl_Lam/Pi*Vector_Tangent_HF[iDim];
+        //Vector[iDim] = 0.0;
+
+      /*--- Apply relaxation factor ---*/
+      su2double alpha_V, alpha_T;
+
+      alpha_V = 0.025;
+      alpha_T = 1.0;
+      C=4.0;
+     // if(Coord_i[0]>=0.304799) cout<<"Tslip "<<Tslip;
+
+      su2double x_dif,y_dif,T_dif;
+
+      T_dif=Tslip;
+      x_dif=Vector[0];
+      y_dif=Vector[1];
+
+      Tslip = (1-alpha_T)*nodes->GetTemperature(iPoint)+(alpha_T)*Tslip;
+      Tslip_ve = (1-alpha_T)*nodes->GetTemperature_ve(iPoint)+(alpha_T)*Tslip_ve;
+
+      //if(Coord_i[0]>=0.3048) Tslip=720;
+
+
+  //       cout<<" Pre_Vel: "<<Vector[0]<<" "<<Vector[1]<<endl; 
+
+
+      for (iDim = 0; iDim < nDim; iDim++){
+        Vector[iDim] = (1-alpha_V)*nodes->GetVelocity(iPoint,iDim)+(alpha_V)*Vector[iDim];
+      }
+      T_dif-=Tslip;
+      x_dif-=Vector[0];
+      y_dif-=Vector[1];
+
+
+
+//     cout<<Ti-Tslip<<endl;
+     // if(Tslip-Ti<5) Tslip=Ti-5;
+     // if(Tslip-Ti>5) Tslip=Ti+5;
+
+     //        Vector[iDim] = 0;
+    //if(abs(T_dif)>180) cout<<"T_dif high"<<Tslip<<endl;
+
 
       nodes->SetVelocity_Old(iPoint,Vector);
 
@@ -1009,8 +1070,8 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
 
       /*--- Apply to the linear system ---*/
       Res_Visc[nSpecies+nDim]   = ((ktr*(Ti-Tj)    + kve*(Tvei-Tvej)) +
-                                   (ktr*(Tslip-Ti) + kve*(Tslip-Tvei))*C)*Area/dij;
-      Res_Visc[nSpecies+nDim+1] = (kve*(Tvei-Tvej) + kve*(Tslip-Tvei)*C)*Area/dij;
+                                   (ktr*(Tslip-Ti) + kve*(Tslip_ve-Tvei))*C)*Area/dij;
+      Res_Visc[nSpecies+nDim+1] = (kve*(Tvei-Tvej) + kve*(Tslip_ve-Tvei)*C)*Area/dij;
 
       LinSysRes.SubtractBlock(iPoint, Res_Visc);
     }
