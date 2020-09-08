@@ -851,7 +851,7 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
   su2double C;
 
   su2double TMAC, TAC;
-  su2double Viscosity, Lambda;
+  su2double Viscosity, Lambda_V,Lambda_T;
   su2double Density, GasConstant;
 
   su2double **Grad_PrimVar;
@@ -956,34 +956,37 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
       }
 
       su2double rhoCv,rhoCvve;
-      su2double Lambda_ve, Tslip_ve;
+      su2double Lambda_Tve, Tslip_ve;
 
       rhoCv=nodes->GetRhoCv_tr(iPoint);
       rhoCvve=nodes->GetRhoCv_ve(iPoint);
 
       /*--- Calculate molecular mean free path ---*/
-      //Lambda = Viscosity/Density*sqrt(PI_NUMBER/(2*GasConstant*Ti));
-      Lambda    = 2/(Gamma+1)*ktr/rhoCv*sqrt(PI_NUMBER/(2*GasConstant*Ti));
-      Lambda_ve = 2/(Gamma+1)*kve/rhoCvve*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda_V = Viscosity/Density*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda_T    = 2/(Gamma+1)*ktr/rhoCv*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda_Tve = 2/(Gamma+1)*kve/rhoCvve*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+
+      su2double Tslip_aux;
 
       /*--- Calculate Temperature Slip ---*/
-      //Tslip = ((2-TAC)/TAC)*2*Gamma/(Gamma+1)/Prandtl_Lam*Lambda*dTn+Twall;
-      Tslip = ((2-TAC)/TAC)*Lambda*dTn+Twall;
-      Tslip_ve = ((2-TAC)/TAC)*Lambda_ve*dTn+Twall;
+      Tslip_aux = ((2.0-TAC)/TAC)*2.0*Gamma/(Gamma+1.0)/Prandtl_Lam*Lambda_V*dTn+Twall;
+      //Tslip = ((2.0-TAC)/TAC)*Lambda_T*dTn+Twall;
+      //Tslip_ve = ((2.0-TAC)/TAC)*Lambda_Tve*dTven+Twall;
+      Tslip_ve = (Tslip_aux-Twall)*(kve*rhoCv/dTn)/(ktr*rhoCvve/dTven)+Twall;
 
+  // if (Coord_i[0]<=0.000001)   cout<<Ti<<" "<<Tslip<<" "<<Tslip_aux<<endl;
 
-      /*--- Calculate temperature gradients tangent to surface ---*/
+      /*--- Calculate temperature gradients tangent to surface ---*/    
       for (iDim = 0; iDim < nDim; iDim++) {
         Vector_Tangent_dT[iDim]   = Grad_PrimVar[T_INDEX][iDim] - dTn * UnitNormal[iDim];
         Vector_Tangent_dTve[iDim] = Grad_PrimVar[TVE_INDEX][iDim] - dTven * UnitNormal[iDim];
       }
-  //    if(Coord_i[0]==0.0) cout<<"x=0"<<" Viscosity:"<<Viscosity<<" Density:"<<Density<<endl;
-  //    if(Coord_i[0]==0.3048) cout<<"x=0.3048"<<" Viscosity:"<<Viscosity<<" Density:"<<Density<<endl;
 
       /*--- Calculate Heatflux tangent to surface ---*/
       for (iDim = 0; iDim < nDim; iDim++) 
-        Vector_Tangent_HF[iDim] = ktr*Vector_Tangent_dT[iDim]+kve*Vector_Tangent_dTve[iDim];
+        Vector_Tangent_HF[iDim] = -ktr*Vector_Tangent_dT[iDim]-kve*Vector_Tangent_dTve[iDim];
       
+
       /*--- Initialize viscous residual to zero ---*/
       for (iVar = 0; iVar < nVar; iVar ++)
         Res_Visc[iVar] = 0.0;
@@ -1004,8 +1007,6 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
           TauElem[iDim] += Tau[iDim][jDim]*UnitNormal[jDim];
       }
 
-  //   if(Coord_i[1]==0.1524)  cout<<"Tau Elem: "<<TauElem[0]<<" "<<TauElem[1]<<endl;
-
       /*--- Compute wall shear stress (using the stress tensor) ---*/
       TauNormal = 0.0;
       for (iDim = 0; iDim < nDim; iDim++)
@@ -1013,53 +1014,25 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
       for (iDim = 0; iDim < nDim; iDim++) {
         TauTangent[iDim] = TauElem[iDim] - TauNormal*UnitNormal[iDim];
       }
-  //     if(Coord_i[1]==0.1524)  cout<<"Tau: "<<TauTangent[0]<<" "<<TauTangent[1]<<endl;
-
 
       /*--- Store the Slip Velocity at the wall */
       for (iDim = 0; iDim < nDim; iDim++)
-        Vector[iDim] = Lambda/Viscosity*(2-TMAC)/TMAC*(TauTangent[iDim])-3/4*(Gamma-1)/Gamma*Prandtl_Lam/Pi*Vector_Tangent_HF[iDim];
-        //Vector[iDim] = 0.0;
-
+        Vector[iDim] = Lambda_V/Viscosity*(2.0-TMAC)/TMAC*(TauTangent[iDim])-3.0/4.0*(Gamma-1.0)/Gamma*Prandtl_Lam/Pi*Vector_Tangent_HF[iDim];
       /*--- Apply relaxation factor ---*/
       su2double alpha_V, alpha_T;
 
-      alpha_V = 0.025;
-      alpha_T = 1.0;
-      C=4.0;
-     // if(Coord_i[0]>=0.304799) cout<<"Tslip "<<Tslip;
+     // if(Coord_i[0]==0.1524) cout<<Vector_Tangent_HF[0]<<endl;
 
-      su2double x_dif,y_dif,T_dif;
+      alpha_V = 0.01;
+      alpha_T = 1.0 ;
+      C=5.0;
 
-      T_dif=Tslip;
-      x_dif=Vector[0];
-      y_dif=Vector[1];
-
-      Tslip = (1-alpha_T)*nodes->GetTemperature(iPoint)+(alpha_T)*Tslip;
-      Tslip_ve = (1-alpha_T)*nodes->GetTemperature_ve(iPoint)+(alpha_T)*Tslip_ve;
-
-      //if(Coord_i[0]>=0.3048) Tslip=720;
-
-
-  //       cout<<" Pre_Vel: "<<Vector[0]<<" "<<Vector[1]<<endl; 
-
+      Tslip = (1.0-alpha_T)*nodes->GetTemperature(iPoint)+(alpha_T)*Tslip_aux;
+      Tslip_ve = (1.0-alpha_T)*nodes->GetTemperature_ve(iPoint)+(alpha_T)*Tslip_ve;
 
       for (iDim = 0; iDim < nDim; iDim++){
         Vector[iDim] = (1-alpha_V)*nodes->GetVelocity(iPoint,iDim)+(alpha_V)*Vector[iDim];
       }
-      T_dif-=Tslip;
-      x_dif-=Vector[0];
-      y_dif-=Vector[1];
-
-
-
-//     cout<<Ti-Tslip<<endl;
-     // if(Tslip-Ti<5) Tslip=Ti-5;
-     // if(Tslip-Ti>5) Tslip=Ti+5;
-
-     //        Vector[iDim] = 0;
-    //if(abs(T_dif)>180) cout<<"T_dif high"<<Tslip<<endl;
-
 
       nodes->SetVelocity_Old(iPoint,Vector);
 
