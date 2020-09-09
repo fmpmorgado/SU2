@@ -1023,13 +1023,13 @@ vector<su2double>& CUserDefinedTCLib::GetDiffusionCoeff(){
 
 su2double CUserDefinedTCLib::GetViscosity(){
 
-  if(Kind_TransCoeffModel == WILKE)
+  /*if(Kind_TransCoeffModel == WILKE)
     ViscosityWBE();
   if(Kind_TransCoeffModel == GUPTAYOS)
-    ViscosityGY(); 
+    ViscosityGY(); */
 
 
- /* su2double Tref=1000;
+   su2double Tref=1000;
   su2double dref=3.595e-10;
   su2double w=0.734;
   su2double m=6.6335209e-26;
@@ -1037,7 +1037,7 @@ su2double CUserDefinedTCLib::GetViscosity(){
   su2double muref;
 
   muref = 15*sqrt(PI_NUMBER*m*k*Tref)/(2*PI_NUMBER*dref*dref*(5-2*w)*(7-2*w));
-  Mu=muref*pow((T/Tref),w); */
+  Mu=muref*pow((T/Tref),w); 
 
   return Mu;
     
@@ -1045,13 +1045,13 @@ su2double CUserDefinedTCLib::GetViscosity(){
 
 vector<su2double>& CUserDefinedTCLib::GetThermalConductivities(){
 
-  if(Kind_TransCoeffModel == WILKE)
+  /*if(Kind_TransCoeffModel == WILKE)
     ThermalConductivitiesWBE();
   if(Kind_TransCoeffModel == GUPTAYOS)
-    ThermalConductivitiesGY();  
+    ThermalConductivitiesGY();  */
 
- /* ThermalConductivities[0]=(9*gamma-5)/(4*gamma-4)*Ru/MolarMass[0]*Mu;
-  ThermalConductivities[1]=0;*/
+  ThermalConductivities[0]=(9*gamma-5)/(4*gamma-4)*Ru/MolarMass[0]*Mu;
+  ThermalConductivities[1]=0; 
 
   return ThermalConductivities; 
 
