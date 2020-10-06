@@ -1835,6 +1835,10 @@ public:
    */
   inline virtual void SetVelocity_Old(unsigned long iPoint, const su2double *val_velocity) {}
 
+
+  inline virtual void SetEnergy_Old(unsigned long iPoint, vector<su2double>& val_energy) {}
+
+
   /*!
    * \brief A virtual member.
    * \param[in] laminarViscosity

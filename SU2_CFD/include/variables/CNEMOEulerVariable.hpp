@@ -430,6 +430,15 @@ public:
      }
   }
 
+
+
+
+  inline void SetEnergy_Old(unsigned long iPoint, vector<su2double>& val_energy) final {
+    for (unsigned long i = 0; i < 2; i++){
+      Solution_Old(iPoint,nSpecies+nDim+i) = val_energy[i]*Primitive(iPoint,RHO_INDEX);
+     }
+  }
+
   /*!
    * \brief A virtual member.
    * \return Value of the vibrational-electronic temperature.

@@ -112,6 +112,9 @@ public:
    */
   vector<su2double>& GetMixtureEnergies() final;
 
+
+  //vector<su2double>& GetMixtureEnergies(su2double val_T, su2double val_Tve) final;
+
   /*!
    * \brief Get vector of species V-E energy.
    */

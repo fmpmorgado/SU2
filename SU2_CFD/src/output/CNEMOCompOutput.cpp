@@ -382,7 +382,7 @@ void CNEMOCompOutput::SetVolumeOutputFields(CConfig *config){
   AddVolumeOutput("TEMPERATURE_VE", "Temperature_ve", "PRIMITIVE", "Temperature_ve");
 
   AddVolumeOutput("MACH",        "Mach",                    "PRIMITIVE", "Mach number");
-//  AddVolumeOutput("PRESSURE_COEFF", "Pressure_Coefficient", "PRIMITIVE", "Pressure coefficient");
+  AddVolumeOutput("PRESSURE_COEFF", "Pressure_Coefficient", "PRIMITIVE", "Pressure coefficient");
 
   if (config->GetKind_Solver() == NEMO_NAVIER_STOKES){
     AddVolumeOutput("LAMINAR_VISCOSITY", "Laminar_Viscosity", "PRIMITIVE", "Laminar viscosity");
@@ -393,6 +393,8 @@ void CNEMOCompOutput::SetVolumeOutputFields(CConfig *config){
     //  AddVolumeOutput("SKIN_FRICTION-Z", "Skin_Friction_Coefficient_z", "PRIMITIVE", "z-component of the skin friction vector");
 
     AddVolumeOutput("HEAT_FLUX", "Heat_Flux", "PRIMITIVE", "Heat-flux");
+    AddVolumeOutput("HF_COEFF", "Heat_Flux_Coefficient", "PRIMITIVE","Heat-flux coefficient");
+
     //AddVolumeOutput("Y_PLUS", "Y_Plus", "PRIMITIVE", "Non-dim. wall distance (Y-Plus)");
 
   }
@@ -640,14 +642,26 @@ void CNEMOCompOutput::LoadVolumeData(CConfig *config, CGeometry *geometry, CSolv
 }
 
 void CNEMOCompOutput::LoadSurfaceData(CConfig *config, CGeometry *geometry, CSolver **solver, unsigned long iPoint, unsigned short iMarker, unsigned long iVertex){
+  CVariable* Node_Flow = solver[FLOW_SOL]->GetNodes();
+
+
+  su2double VelMag = 0.0;
+  for (unsigned short iDim = 0; iDim < nDim; iDim++){
+    VelMag += pow(solver[FLOW_SOL]->GetVelocity_Inf(iDim),2.0);
+  }
+  VelMag=sqrt(VelMag);
+
+  SetVolumeOutputValue("PRESSURE_COEFF", iPoint, (Node_Flow->GetPressure(iPoint) - solver[FLOW_SOL]->GetPressure_Inf())/(0.5*solver[FLOW_SOL]->GetDensity_Inf()*pow(VelMag,2)));
 
   if ((config->GetKind_Solver() == NEMO_NAVIER_STOKES)) {
-   SetVolumeOutputValue("SKIN_FRICTION-X", iPoint, solver[FLOW_SOL]->GetCSkinFriction(iMarker, iVertex, 0));
-   SetVolumeOutputValue("SKIN_FRICTION-Y", iPoint, solver[FLOW_SOL]->GetCSkinFriction(iMarker, iVertex, 1));
+    SetVolumeOutputValue("SKIN_FRICTION-X", iPoint, solver[FLOW_SOL]->GetCSkinFriction(iMarker, iVertex, 0));
+    SetVolumeOutputValue("SKIN_FRICTION-Y", iPoint, solver[FLOW_SOL]->GetCSkinFriction(iMarker, iVertex, 1));
   //  if (nDim == 3)
   //    SetVolumeOutputValue("SKIN_FRICTION-Z", iPoint, solver[FLOW_SOL]->GetCSkinFriction(iMarker, iVertex, 2));
 
     SetVolumeOutputValue("HEAT_FLUX", iPoint, solver[FLOW_SOL]->GetHeatFlux(iMarker, iVertex));
+    SetVolumeOutputValue("HF_COEFF", iPoint, (solver[FLOW_SOL]->GetHeatFlux(iMarker, iVertex))/(0.5*solver[FLOW_SOL]->GetDensity_Inf()*pow(VelMag,3)));
+
   //  SetVolumeOutputValue("Y_PLUS", iPoint, solver[FLOW_SOL]->GetYPlus(iMarker, iVertex));
   }
 }

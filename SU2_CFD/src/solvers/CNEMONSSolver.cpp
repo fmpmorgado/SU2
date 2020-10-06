@@ -640,8 +640,37 @@ void CNEMONSSolver::BC_IsothermalNonCatalytic_Wall(CGeometry *geometry,
       //  }
       //  Jacobian.SubtractBlock(iPoint, iPoint, Jacobian_i);
       //} // implicit
-    }
+
+
+
+        /*--- Test Section --- */
+
+    vector<su2double> rhos;
+
+    rhos.resize(nSpecies,0.0);
+
+    for (int i = 0; i < nSpecies; i++) {
+      rhos[i]=nodes->GetDensity(iPoint,i);
+  }
+
+    vector<su2double> energies;
+
+    FluidModel->SetTDStateRhosTTv(rhos, Twall, Twall);
+    energies = FluidModel->GetMixtureEnergies();
+
+
+    nodes->SetEnergy_Old(iPoint,energies);
+    
+    for (int i = 0; i < 2; i++) {
+      LinSysRes.SetBlock_Zero(iPoint, nSpecies+nDim+i);
+      nodes->SetVal_ResTruncError_Zero(iPoint,nSpecies+nDim+i);
+    } 
+      
+
+    } 
   } 
+
+
 }
 
 void CNEMONSSolver::BC_IsothermalCatalytic_Wall(CGeometry *geometry,
@@ -963,14 +992,14 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
 
       /*--- Calculate molecular mean free path ---*/
       Lambda_V = Viscosity/Density*sqrt(PI_NUMBER/(2*GasConstant*Ti));
-      Lambda_T    = 2/(Gamma+1)*ktr/rhoCv*sqrt(PI_NUMBER/(2*GasConstant*Ti));
-      Lambda_Tve = 2/(Gamma+1)*kve/rhoCvve*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda_T    = 2.0/(Gamma+1)*ktr/rhoCv*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda_Tve = 2.0/(Gamma+1)*kve/rhoCvve*sqrt(PI_NUMBER/(2*GasConstant*Ti));
 
       su2double Tslip_aux;
 
       /*--- Calculate Temperature Slip ---*/
-      Tslip_aux = ((2.0-TAC)/TAC)*2.0*Gamma/(Gamma+1.0)/Prandtl_Lam*Lambda_V*dTn+Twall;
-      //Tslip = ((2.0-TAC)/TAC)*Lambda_T*dTn+Twall;
+      //Tslip_aux = ((2.0-TAC)/TAC)*2.0*Gamma/(Gamma+1.0)/Prandtl_Lam*Lambda_V*dTn+Twall;
+      Tslip_aux = ((2.0-TAC)/TAC)*Lambda_T*dTn+Twall;
       //Tslip_ve = ((2.0-TAC)/TAC)*Lambda_Tve*dTven+Twall;
       Tslip_ve = (Tslip_aux-Twall)*(kve*rhoCv/dTn)/(ktr*rhoCvve/dTven)+Twall;
 
@@ -1017,21 +1046,21 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
 
       /*--- Store the Slip Velocity at the wall */
       for (iDim = 0; iDim < nDim; iDim++)
-        Vector[iDim] = Lambda_V/Viscosity*(2.0-TMAC)/TMAC*(TauTangent[iDim])-3.0/4.0*(Gamma-1.0)/Gamma*Prandtl_Lam/Pi*Vector_Tangent_HF[iDim];
+        Vector[iDim] = Lambda_V/Viscosity*(2.0-TMAC)/TMAC*(TauTangent[iDim]);//-3.0/4.0*(Gamma-1.0)/Gamma*Prandtl_Lam/Pi*Vector_Tangent_HF[iDim];
       /*--- Apply relaxation factor ---*/
       su2double alpha_V, alpha_T;
 
      // if(Coord_i[0]==0.1524) cout<<Vector_Tangent_HF[0]<<endl;
 
-      alpha_V = 0.01;
-      alpha_T = 1.0 ;
+      alpha_V = 0.0001;
+      alpha_T = 0.0001;
       C=5.0;
 
       Tslip = (1.0-alpha_T)*nodes->GetTemperature(iPoint)+(alpha_T)*Tslip_aux;
       Tslip_ve = (1.0-alpha_T)*nodes->GetTemperature_ve(iPoint)+(alpha_T)*Tslip_ve;
 
       for (iDim = 0; iDim < nDim; iDim++){
-        Vector[iDim] = (1-alpha_V)*nodes->GetVelocity(iPoint,iDim)+(alpha_V)*Vector[iDim];
+        Vector[iDim] = (1.0-alpha_V)*nodes->GetVelocity(iPoint,iDim)+(alpha_V)*Vector[iDim];
       }
 
       nodes->SetVelocity_Old(iPoint,Vector);
@@ -1041,12 +1070,30 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
         nodes->SetVal_ResTruncError_Zero(iPoint,nSpecies+iDim);
       }
 
-      /*--- Apply to the linear system ---*/
-      Res_Visc[nSpecies+nDim]   = ((ktr*(Ti-Tj)    + kve*(Tvei-Tvej)) +
-                                   (ktr*(Tslip-Ti) + kve*(Tslip_ve-Tvei))*C)*Area/dij;
-      Res_Visc[nSpecies+nDim+1] = (kve*(Tvei-Tvej) + kve*(Tslip_ve-Tvei)*C)*Area/dij;
+    vector<su2double> rhos;
 
-      LinSysRes.SubtractBlock(iPoint, Res_Visc);
+    rhos.resize(nSpecies,0.0);
+
+    for (int i = 0; i < nSpecies; i++) {
+      rhos[i]=nodes->GetDensity(iPoint,i);
+  }
+
+    vector<su2double> energies;
+
+    FluidModel->SetTDStateRhosTTv(rhos, Tslip, Tslip_ve);
+    energies = FluidModel->GetMixtureEnergies();
+    energies[0]+=0.5*(Vector[0]*Vector[0]+Vector[1]*Vector[1]);
+
+    nodes->SetEnergy_Old(iPoint,energies);
+    
+    for (int i = 0; i < 2; i++) {
+      LinSysRes.SetBlock_Zero(iPoint, nSpecies+nDim+i);
+      nodes->SetVal_ResTruncError_Zero(iPoint,nSpecies+nDim+i);
+    } 
+      
+
+
+
     }
   } 
 }

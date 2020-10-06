@@ -61,7 +61,7 @@ CUserDefinedTCLib::CUserDefinedTCLib(const CConfig* config, unsigned short val_n
   
   String_GasModel = config->GetGasModel();
 
-  if (String_GasModel =="AR"){
+  if (String_GasModel =="ARGON"){
     if (nSpecies != 1) {
       cout << "CONFIG ERROR: nSpecies mismatch between gas model & gas composition" << endl;
     }
@@ -751,6 +751,60 @@ vector<su2double>& CUserDefinedTCLib::GetMixtureEnergies(){
 
 }
 
+
+/*vector<su2double>& CUserDefinedTCLib::GetMixtureEnergies(su2double val_T, su2double val_Tve){
+
+  su2double rhoEmix, rhoEve, Ef, Ev, Ee, num, denom;
+
+  rhoEmix = 0.0;
+  rhoEve  = 0.0;
+  denom   = 0.0;
+
+  for (iSpecies = 0; iSpecies < nHeavy; iSpecies++){
+    
+    // Species formation energy
+    Ef = Enthalpy_Formation[iSpecies] - Ru/MolarMass[iSpecies]*Ref_Temperature[iSpecies];
+
+    // Species vibrational energy
+    if (CharVibTemp[iSpecies] != 0.0 && nSpecies != 1)
+      Ev = Ru/MolarMass[iSpecies] * CharVibTemp[iSpecies] / (exp(CharVibTemp[iSpecies]/val_Tve)-1.0);
+    else
+      Ev = 0.0;
+    
+    // Species electronic energy
+
+    denom = ElDegeneracy(iSpecies,0) * exp(CharElTemp(iSpecies,0)/val_Tve);
+    for (iEl = 1; iEl < nElStates[iSpecies]; iEl++) {
+      num   += ElDegeneracy(iSpecies,iEl) * CharElTemp(iSpecies,iEl) * exp(-CharElTemp(iSpecies,iEl)/val_Tve);
+      denom += ElDegeneracy(iSpecies,iEl) * exp(-CharElTemp(iSpecies,iEl)/val_Tve);
+    }
+    Ee = Ru/MolarMass[iSpecies] * (num/denom);
+
+    // Mixture total energy
+    rhoEmix += rhos[iSpecies] * ((3.0/2.0+RotationModes[iSpecies]/2.0) * Ru/MolarMass[iSpecies] * (val_T-Ref_Temperature[iSpecies]) + Ev + Ee + Ef);
+
+    // Mixture vibrational-electronic energy
+    rhoEve += rhos[iSpecies] * (Ev + Ee);
+
+  }
+
+  for (iSpecies = 0; iSpecies < nEl; iSpecies++) {
+    
+    // Species formation energy
+    Ef = Enthalpy_Formation[nSpecies-1] - Ru/MolarMass[nSpecies-1] * Ref_Temperature[nSpecies-1];
+    
+    // Electron t-r mode contributes to mixture vib-el energy
+    rhoEve += (3.0/2.0) * Ru/MolarMass[nSpecies-1] * (val_Tve - Ref_Temperature[nSpecies-1]); //bug? not multiplying by rhos[iSpecies]
+  }
+  
+  energies[0] = rhoEmix/Density;
+  energies[1] = rhoEve/Density;
+
+  return energies;
+
+}*/
+
+
 vector<su2double>& CUserDefinedTCLib::GetSpeciesEve(su2double val_T){
 
   su2double Ev, Eel, Ef, num, denom;
@@ -1029,7 +1083,7 @@ su2double CUserDefinedTCLib::GetViscosity(){
     ViscosityGY(); 
 
 
-/*su2double Tref=1000;
+ /* su2double Tref=1000;
   su2double dref=3.595e-10;
   su2double w=0.734;
   su2double m=6.6335209e-26;
@@ -1050,8 +1104,8 @@ vector<su2double>& CUserDefinedTCLib::GetThermalConductivities(){
   if(Kind_TransCoeffModel == GUPTAYOS)
     ThermalConductivitiesGY();  
 
- /* ThermalConductivities[0]=(9*gamma-5)/(4*gamma-4)*Ru/MolarMass[0]*Mu;
-  ThermalConductivities[1]=0; */
+//  ThermalConductivities[0]=(9*gamma-5)/(4*gamma-4)*Ru/MolarMass[0]*Mu;
+//  ThermalConductivities[1]=0; 
 
   return ThermalConductivities; 
 
@@ -1408,7 +1462,7 @@ vector<su2double>& CUserDefinedTCLib::GetTemperatures(vector<su2double>& val_rho
 
   /*--- Set vibrational temperature algorithm parameters ---*/
   Btol     = 1.0E-6;    // Tolerance for the Bisection method
-  maxBIter = 50;        // Maximum Bisection method iterations
+  maxBIter = 60;        // Maximum Bisection method iterations
 
   //Initialize solution
   Tve   = T;

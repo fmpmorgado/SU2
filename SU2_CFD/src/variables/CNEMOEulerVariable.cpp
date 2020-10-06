@@ -258,13 +258,9 @@ bool CNEMOEulerVariable::Cons2PrimVar(su2double *U, su2double *V,
   
   // Determine if the temperature lies within the acceptable range
   if (V[T_INDEX] == Tmin) {
-    cout<<"Tmin error:"<<V[T_INDEX]<<endl;
-    cout<<"Velocity x:"<<V[VEL_INDEX]<<endl;
-    cout<<"Velocity y:"<<V[1+VEL_INDEX]<<endl;
 
     nonPhys = true;
   } else if (V[T_INDEX] == Tmax){
-    cout<<"Tmax error:"<<V[T_INDEX]<<endl;
     nonPhys = true;
   }
   
@@ -282,12 +278,10 @@ bool CNEMOEulerVariable::Cons2PrimVar(su2double *U, su2double *V,
       rhoEve_max += U[iSpecies] * eves_max[iSpecies];
     }
     if (rhoEve < rhoEve_min) {
-      cout<<"rhoEve_min error:"<<V[TVE_INDEX]<<endl;
       nonPhys      = true;
       V[TVE_INDEX] = Tvemin;
       U[nSpecies+nDim+1] = rhoEve_min;
     } else if (rhoEve > rhoEve_max) {
-      cout<<"rhoEve_max error:"<<V[TVE_INDEX]<<endl;
       nonPhys      = true;
       V[TVE_INDEX] = Tvemax;
       U[nSpecies+nDim+1] = rhoEve_max;
@@ -316,7 +310,6 @@ bool CNEMOEulerVariable::Cons2PrimVar(su2double *U, su2double *V,
   V[P_INDEX] = fluidmodel->GetPressure();
 
   if (V[P_INDEX] < 0.0) {
-    cout<<"Pressure error:"<<V[P_INDEX]<<endl;
     V[P_INDEX] = 1E-20;
     nonPhys = true;
   }

@@ -118,6 +118,8 @@ public:
    */
   virtual vector<su2double>& GetMixtureEnergies() = 0;
   
+
+  //virtual vector<su2double>& GetEnergies(su2double val_T, su2double val_Tve) = 0;
   /*!
    * \brief Get species net production rates.
    */
