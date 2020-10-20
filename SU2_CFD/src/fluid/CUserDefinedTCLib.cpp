@@ -98,7 +98,7 @@ CUserDefinedTCLib::CUserDefinedTCLib(const CConfig* config, unsigned short val_n
     CharElTemp.resize(nSpecies,maxEl) = su2double(0.0);
     ElDegeneracy.resize(nSpecies,maxEl) = su2double(0.0);
 
-    Blottner(0,0) = -2.17E-2;   Blottner(0,1) = 9.9982E-1;   Blottner(0,2) = -1.335E1;  // N Change later
+    Blottner(0,0) = 3.83444322E-03;   Blottner(0,1) = 6.74718764E-01;   Blottner(0,2) = -1.24290388E+01; 
 
     // AR: 7 states
     CharElTemp(0,0) = 0.000000000000000E+00;
@@ -1083,7 +1083,7 @@ su2double CUserDefinedTCLib::GetViscosity(){
     ViscosityGY(); 
 
 
- /* su2double Tref=1000;
+  su2double Tref=1000;
   su2double dref=3.595e-10;
   su2double w=0.734;
   su2double m=6.6335209e-26;
@@ -1091,7 +1091,7 @@ su2double CUserDefinedTCLib::GetViscosity(){
   su2double muref;
 
   muref = 15*sqrt(PI_NUMBER*m*k*Tref)/(2*PI_NUMBER*dref*dref*(5-2*w)*(7-2*w));
-  Mu=muref*pow((T/Tref),w); */
+  Mu=muref*pow((T/Tref),w); 
 
   return Mu;
     
@@ -1104,8 +1104,8 @@ vector<su2double>& CUserDefinedTCLib::GetThermalConductivities(){
   if(Kind_TransCoeffModel == GUPTAYOS)
     ThermalConductivitiesGY();  
 
-//  ThermalConductivities[0]=(9*gamma-5)/(4*gamma-4)*Ru/MolarMass[0]*Mu;
-//  ThermalConductivities[1]=0; 
+  ThermalConductivities[0]=(9*gamma-5)/(4*gamma-4)*Ru/MolarMass[0]*Mu;
+  ThermalConductivities[1]=0; 
 
   return ThermalConductivities; 
 

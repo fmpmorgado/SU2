@@ -645,7 +645,7 @@ void CNEMONSSolver::BC_IsothermalNonCatalytic_Wall(CGeometry *geometry,
 
         /*--- Test Section --- */
 
-    vector<su2double> rhos;
+ /*   vector<su2double> rhos;
 
     rhos.resize(nSpecies,0.0);
 
@@ -664,7 +664,7 @@ void CNEMONSSolver::BC_IsothermalNonCatalytic_Wall(CGeometry *geometry,
     for (int i = 0; i < 2; i++) {
       LinSysRes.SetBlock_Zero(iPoint, nSpecies+nDim+i);
       nodes->SetVal_ResTruncError_Zero(iPoint,nSpecies+nDim+i);
-    } 
+    }  */
       
 
     } 
@@ -991,15 +991,15 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
       rhoCvve=nodes->GetRhoCv_ve(iPoint);
 
       /*--- Calculate molecular mean free path ---*/
-      Lambda_V = Viscosity/Density*sqrt(PI_NUMBER/(2*GasConstant*Ti));
-      Lambda_T    = 2.0/(Gamma+1)*ktr/rhoCv*sqrt(PI_NUMBER/(2*GasConstant*Ti));
-      Lambda_Tve = 2.0/(Gamma+1)*kve/rhoCvve*sqrt(PI_NUMBER/(2*GasConstant*Ti));
+      Lambda_V = Viscosity/Density*sqrt(PI_NUMBER/(2.0*GasConstant*Ti));
+      Lambda_T    = 2.0/(Gamma+1.0)*ktr/rhoCv*sqrt(PI_NUMBER/(2.0*GasConstant*Ti));
+      Lambda_Tve = 2.0/(Gamma+1.0)*kve/rhoCvve*sqrt(PI_NUMBER/(2.0*GasConstant*Ti));
 
       su2double Tslip_aux;
 
       /*--- Calculate Temperature Slip ---*/
-      //Tslip_aux = ((2.0-TAC)/TAC)*2.0*Gamma/(Gamma+1.0)/Prandtl_Lam*Lambda_V*dTn+Twall;
-      Tslip_aux = ((2.0-TAC)/TAC)*Lambda_T*dTn+Twall;
+      Tslip_aux = ((2.0-TAC)/TAC)*2.0*Gamma/(Gamma+1.0)/Prandtl_Lam*Lambda_V*dTn+Twall;
+      //Tslip_aux = ((2.0-TAC)/TAC)*Lambda_T*dTn+Twall;
       //Tslip_ve = ((2.0-TAC)/TAC)*Lambda_Tve*dTven+Twall;
       Tslip_ve = (Tslip_aux-Twall)*(kve*rhoCv/dTn)/(ktr*rhoCvve/dTven)+Twall;
 
@@ -1050,10 +1050,20 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
       /*--- Apply relaxation factor ---*/
       su2double alpha_V, alpha_T;
 
+
+    /*if(Coord_i[0]>=0.15239 & Coord_i[0]<=0.15241 & Coord_i[1]>0){
+      cout<<"Tslip: "<<Tslip_aux<<" "<<Ti<<" "<<alpha_T<<endl;
+      cout<<"Vector: "<<Vector[0]<<" "<<Vector[1]<<" "<<alpha_V<<endl;
+      cout<<"dTn: "<<dTn<<endl;
+      cout<<"Gamma: "<<Gamma<<endl;
+      cout<<"Twall: "<<Twall<<endl;
+    } */
+
+
      // if(Coord_i[0]==0.1524) cout<<Vector_Tangent_HF[0]<<endl;
 
-      alpha_V = 0.0001;
-      alpha_T = 0.0001;
+      alpha_V = 0.001;
+      alpha_T = 0.001;
       C=5.0;
 
       Tslip = (1.0-alpha_T)*nodes->GetTemperature(iPoint)+(alpha_T)*Tslip_aux;
@@ -1069,6 +1079,16 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
         LinSysRes.SetBlock_Zero(iPoint, nSpecies+iDim);
         nodes->SetVal_ResTruncError_Zero(iPoint,nSpecies+iDim);
       }
+
+
+      Res_Visc[nSpecies+nDim]   = ((ktr*(Ti-Tj)    + kve*(Tvei-Tvej)) +
+                                   (ktr*(Tslip-Ti) + kve*(Tslip_ve-Tvei))*C)*Area/dij;
+      Res_Visc[nSpecies+nDim+1] = (kve*(Tvei-Tvej) + kve*(Tslip_ve-Tvei) *C)*Area/dij;
+
+      LinSysRes.SubtractBlock(iPoint, Res_Visc); 
+
+
+
 
     vector<su2double> rhos;
 
@@ -1091,6 +1111,15 @@ void CNEMONSSolver::BC_Smoluchowski_Maxwell(CGeometry *geometry,
       nodes->SetVal_ResTruncError_Zero(iPoint,nSpecies+nDim+i);
     } 
       
+    /*if(Coord_i[0]>=0.15239 & Coord_i[0]<=0.15241 & Coord_i[1]>0){
+      cout<<"Density: "<< Density<<endl;
+      cout<<"Lambda: "<< Lambda_V<<endl;
+      cout<<"Lambda_T: "<<Lambda_T<<endl;
+      cout<<"Tslip: "<<Tslip<<" "<<alpha_T<<endl;
+      cout<<"Vector: "<<Vector[0]<<" "<<Vector[1]<<" "<<alpha_V<<endl;
+      cout<<"Energy: "<<energies[0]<<endl;
+      cout<<"Viscosity: "<<Viscosity<<endl;
+    }*/
 
 
 
